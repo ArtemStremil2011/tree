@@ -1,0 +1,621 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Семейное древо{% endblock %}
+
+{% block content %}
+
+<!-- КНОПКА ВЫХОДА НА СТРАНИЦЕ ДЕРЕВА -->
+{% if user.is_authenticated %}
+    <div style="
+        display: flex;
+        justify-content: flex-end;
+        padding: 1rem 2rem;
+        margin-bottom: 1rem;
+    ">
+        <div style="
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            backdrop-filter: blur(5px);
+        ">
+            <span style="color: #ffd700;">
+                👤 {{ user.username }}
+            </span>
+            <a onclick="showLogoutModal()" style="
+                background: #e74c3c;
+                color: white;
+                padding: 0.5rem 1.2rem;
+                border-radius: 30px;
+                text-decoration: none;
+                font-size: 0.9rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s;
+                display: inline-block;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(231,76,60,0.3)'"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                🚪 Выйти
+            </a>
+        </div>
+    </div>
+{% endif %}
+
+<!-- КНОПКА ДОБАВЛЕНИЯ ЧЕЛОВЕКА -->
+{% if user.is_authenticated %}
+    <div style="text-align: right; margin-bottom: 2rem; padding: 0 2rem;">
+        <a href="{% url 'new_person' %}" style="
+            display: inline-block;
+            background: #ffd700;
+            color: #2c3e50;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(255,215,0,0.3)'"
+           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 5px rgba(0,0,0,0.2)'">
+            ➕ Добавить человека
+        </a>
+    </div>
+{% endif %}
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #1a472a 0%, #2d5a3a 100%);
+        min-height: 100vh;
+        padding-top: 80px;
+    }
+
+    /* ФИКСИРОВАННАЯ ШАПКА */
+    .fixed-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        padding: 1rem 2rem;
+        z-index: 1000;
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .nav-menu {
+        display: flex;
+        justify-content: center;
+        gap: 3rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .nav-menu a {
+        color: white !important;
+        text-decoration: none;
+        font-size: 1.1rem;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 30px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .nav-menu a:hover {
+        background: rgba(255, 215, 0, 0.2);
+        color: #ffd700 !important;
+        transform: translateY(-2px);
+    }
+
+    /* ОСНОВНОЙ КОНТЕЙНЕР */
+    .tree-container {
+        padding: 2rem;
+        overflow-x: auto;
+        min-height: calc(100vh - 80px);
+        position: relative;
+    }
+
+    /* ВЕРТИКАЛЬНОЕ ДЕРЕВО */
+    .family-tree {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: min-content;
+        padding: 2rem;
+        position: relative;
+    }
+
+    /* УРОВНИ ДЕРЕВА */
+    .tree-level {
+        display: flex;
+        justify-content: center;
+        gap: 3rem;
+        margin: 2rem 0;
+        position: relative;
+        width: 100%;
+        min-width: min-content;
+        padding: 1rem 2rem;
+    }
+
+    /* Карточка человека */
+    .person-node {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 220px;
+        flex-shrink: 0;
+    }
+
+    .person-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        width: 100%;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border: 3px solid transparent;
+        position: relative;
+        z-index: 10;
+        cursor: pointer;
+    }
+
+    .person-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        border-color: #ffd700;
+    }
+
+    /* Аватар */
+    .person-avatar {
+        width: 100%;
+        height: 160px;
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+    }
+
+    .avatar-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .avatar-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+    }
+
+    .avatar-initials {
+        font-size: 4.5rem;
+        font-weight: bold;
+        color: white;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        text-transform: uppercase;
+    }
+
+    /* Информация */
+    .person-info {
+        padding: 1rem;
+        text-align: center;
+    }
+
+    .person-name {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #2c3e50;
+        margin: 0;
+    }
+
+    .person-name a {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .person-name a:hover {
+        color: #3498db;
+    }
+
+    /* Цвета рамок по уровням */
+    .level-0 .person-card { border-color: #ffd700; }
+    .level-1 .person-card { border-color: #c0c0c0; }
+    .level-2 .person-card { border-color: #cd7f32; }
+    .level-3 .person-card { border-color: #8b4513; }
+    .level-4 .person-card { border-color: #4a4a4a; }
+    .level-5 .person-card { border-color: #2c3e50; }
+
+    /* SVG для линий */
+    .tree-edges {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 5;
+    }
+
+    /* СТРЕЛКИ ДЛЯ ПРОКРУТКИ */
+    .scroll-arrow {
+        position: fixed;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 50px;
+        height: 50px;
+        background: rgba(255, 215, 0, 0.3);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 1000;
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        font-size: 1.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .scroll-arrow:hover {
+        background: rgba(255, 215, 0, 0.8);
+        transform: translateY(-50%) scale(1.1);
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    }
+
+    .scroll-arrow.left {
+        left: 20px;
+    }
+
+    .scroll-arrow.right {
+        right: 20px;
+    }
+
+    /* ПОЛЗУНОК МАСШТАБА */
+    .zoom-control {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        padding: 0.8rem 1.5rem;
+        border-radius: 50px;
+        z-index: 1000;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .zoom-btn {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255, 215, 0, 0.3);
+        color: white;
+        font-size: 1.3rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .zoom-btn:hover {
+        background: rgba(255, 215, 0, 0.8);
+        transform: scale(1.1);
+    }
+
+    .zoom-slider {
+        width: 150px;
+        height: 4px;
+        -webkit-appearance: none;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 2px;
+        outline: none;
+    }
+
+    .zoom-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #ffd700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .zoom-slider::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+        box-shadow: 0 0 10px #ffd700;
+    }
+
+    .zoom-value {
+        color: white;
+        font-size: 0.9rem;
+        min-width: 45px;
+        text-align: center;
+    }
+
+    /* ПОДСКАЗКА О ПРОКРУТКЕ */
+    .scroll-hint {
+        position: fixed;
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 0.8rem 2rem;
+        border-radius: 50px;
+        font-size: 1rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        z-index: 1000;
+        animation: bounce 2s infinite;
+        pointer-events: none;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    @keyframes bounce {
+        0%, 100% { transform: translateX(-50%) translateY(0); }
+        50% { transform: translateX(-50%) translateY(-10px); }
+    }
+
+    /* Пустое состояние */
+    .empty-tree {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 4rem;
+        text-align: center;
+        color: white;
+        border: 2px dashed rgba(255, 255, 255, 0.3);
+        max-width: 600px;
+        margin: 100px auto;
+    }
+
+    .empty-tree-icon {
+        font-size: 5rem;
+        margin-bottom: 1.5rem;
+        animation: pulse 2s infinite;
+    }
+
+    .empty-tree h2 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+
+    .empty-tree p {
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+        opacity: 0.9;
+    }
+
+    .empty-tree a {
+        display: inline-block;
+        padding: 1rem 2.5rem;
+        background: #ffd700;
+        color: #2c3e50;
+        text-decoration: none;
+        border-radius: 50px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+
+    .empty-tree a:hover {
+        background: #ffa500;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+</style>
+
+<!-- ОСНОВНОЙ КОНТЕНТ -->
+<div class="tree-container" id="treeContainer">
+    <div class="family-tree" id="familyTree">
+        {% if people %}
+            {% regroup people by level as level_list %}
+            
+            {% for level in level_list reversed %}
+                <div class="tree-level level-{{ level.grouper }}" data-level="{{ level.grouper }}">
+                    {% for person in level.list %}
+                        <div class="person-node" 
+                             data-person-id="{{ person.id }}"
+                             data-parent-id="{% if person.parent %}{{ person.parent.id }}{% endif %}"
+                             data-level="{{ level.grouper }}">
+                            
+                            <div class="person-card">
+                                <div class="person-avatar">
+                                    {% if person.avatar %}
+                                        <img src="{{ person.avatar.url }}" alt="{{ person.name }}" class="avatar-image">
+                                    {% else %}
+                                        <div class="avatar-placeholder">
+                                            <span class="avatar-initials">{{ person.name|make_list|first|upper }}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="person-info">
+                                    <h3 class="person-name">
+                                        <a href="{% url 'person_detail' person.id %}">{{ person.name }}</a>
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+
+            <!-- Контейнер для линий-связей -->
+            <svg class="tree-edges" id="treeEdges"></svg>
+        {% else %}
+            <div class="empty-tree">
+                <div class="empty-tree-icon">🌱</div>
+                <h2>Посадите своё семейное древо</h2>
+                <p>Начните с себя и добавляйте предков</p>
+                <a href="{% url 'new_person' %}">➕ Создать первую запись</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- СТРЕЛКИ ДЛЯ ПРОКРУТКИ -->
+<div class="scroll-arrow left" onclick="scrollTree('left')">←</div>
+<div class="scroll-arrow right" onclick="scrollTree('right')">→</div>
+
+<!-- ПОЛЗУНОК МАСШТАБА -->
+<div class="zoom-control">
+    <button class="zoom-btn" onclick="zoomOut()">−</button>
+    <input type="range" class="zoom-slider" id="zoomSlider" min="50" max="150" value="100" step="5">
+    <button class="zoom-btn" onclick="zoomIn()">+</button>
+    <span class="zoom-value" id="zoomValue">100%</span>
+</div>
+
+<!-- ПОДСКАЗКА О ПРОКРУТКЕ -->
+<div class="scroll-hint" id="scrollHint">
+    <span>←</span> Листайте в стороны <span>→</span>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('treeContainer');
+    const svg = document.getElementById('treeEdges');
+    const familyTree = document.getElementById('familyTree');
+    const zoomSlider = document.getElementById('zoomSlider');
+    const zoomValue = document.getElementById('zoomValue');
+    
+    if (!container || !svg || !familyTree) return;
+
+    let currentZoom = 100;
+
+    function drawLines() {
+        svg.innerHTML = '';
+        
+        const nodes = document.querySelectorAll('.person-node');
+        if (nodes.length < 2) return;
+        
+        // Устанавливаем размер SVG
+        svg.style.width = container.scrollWidth + 'px';
+        svg.style.height = container.scrollHeight + 'px';
+        
+        nodes.forEach(node => {
+            const parentId = node.dataset.parentId;
+            if (!parentId || parentId === 'None') return;
+            
+            const parent = document.querySelector(`[data-person-id="${parentId}"]`);
+            if (!parent) return;
+            
+            // Получаем позиции
+            const nodeRect = node.getBoundingClientRect();
+            const parentRect = parent.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+            
+            // Координаты относительно контейнера с прокруткой
+            const childX = nodeRect.left + nodeRect.width/2 - containerRect.left + container.scrollLeft;
+            const childY = nodeRect.bottom - containerRect.top + container.scrollTop;
+            const parentX = parentRect.left + parentRect.width/2 - containerRect.left + container.scrollLeft;
+            const parentY = parentRect.top - containerRect.top + container.scrollTop;
+            
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', childX);
+            line.setAttribute('y1', childY);
+            line.setAttribute('x2', parentX);
+            line.setAttribute('y2', parentY);
+            line.setAttribute('stroke', '#ffd700');
+            line.setAttribute('stroke-width', '2');
+            line.setAttribute('stroke-dasharray', '5,3');
+            
+            svg.appendChild(line);
+        });
+    }
+
+    // Зум через изменение размера, а не transform
+    function applyZoom() {
+        const scale = currentZoom / 100;
+        
+        // Меняем размер шрифта и отступы
+        document.documentElement.style.fontSize = (16 * scale) + 'px';
+        
+        // Меняем ширину карточек
+        document.querySelectorAll('.person-node').forEach(node => {
+            node.style.width = (220 * scale) + 'px';
+        });
+        
+        // Меняем отступы между уровнями
+        document.querySelectorAll('.tree-level').forEach(level => {
+            level.style.gap = (48 * scale) + 'px';
+            level.style.margin = (32 * scale) + 'px 0';
+        });
+        
+        zoomValue.textContent = currentZoom + '%';
+        
+        // Перерисовываем линии
+        setTimeout(drawLines, 50);
+    }
+
+    window.zoomIn = function() {
+        currentZoom = Math.min(150, currentZoom + 10);
+        zoomSlider.value = currentZoom;
+        applyZoom();
+    };
+    
+    window.zoomOut = function() {
+        currentZoom = Math.max(50, currentZoom - 10);
+        zoomSlider.value = currentZoom;
+        applyZoom();
+    };
+    
+    zoomSlider.addEventListener('input', function() {
+        currentZoom = parseInt(this.value);
+        applyZoom();
+    });
+
+    window.scrollTree = function(dir) {
+        container.scrollBy({
+            left: dir === 'left' ? -800 : 800,
+            behavior: 'smooth'
+        });
+        setTimeout(drawLines, 100);
+    };
+
+    // События
+    container.addEventListener('scroll', drawLines);
+    window.addEventListener('resize', drawLines);
+    
+    // Запуск
+    applyZoom();
+    drawLines();
+    
+    // Скрыть подсказку
+    setTimeout(() => {
+        const hint = document.getElementById('scrollHint');
+        if (hint) hint.style.display = 'none';
+    }, 4000);
+});
+</script>
+{% endblock %}

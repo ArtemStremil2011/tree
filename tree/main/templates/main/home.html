@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Добро пожаловать{% endblock %}
+
+{% block content %}
+<style>
+    .hero {
+        min-height: calc(100vh - 80px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: white;
+        padding: 2rem;
+    }
+    
+    .hero-content {
+        max-width: 600px;
+    }
+    
+    .hero h1 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    
+    .hero p {
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+        opacity: 0.9;
+    }
+    
+    .hero-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .hero-btn {
+        padding: 1rem 2rem;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: bold;
+        transition: all 0.3s;
+        min-width: 150px;
+    }
+    
+    .hero-btn.primary {
+        background: #ffd700;
+        color: #2c3e50;
+    }
+    
+    .hero-btn.secondary {
+        background: transparent;
+        color: white;
+        border: 2px solid white;
+    }
+    
+    .hero-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+
+    @media (max-width: 768px) {
+        .hero h1 {
+            font-size: 2rem;
+        }
+        .hero-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+</style>
+
+<div class="hero">
+    <div class="hero-content">
+        <h1>🌳 Семейное древо</h1>
+        <p>Создайте своё генеалогическое древо, добавляйте предков, загружайте фотографии и документы</p>
+        
+        <div class="hero-buttons">
+            {% if user.is_authenticated %}
+                <a href="{% url 'person_list' %}" class="hero-btn primary">Перейти к древу</a>
+            {% else %}
+                <a href="{% url 'users:login' %}" class="hero-btn primary">🔐 Войти</a>
+                <a href="{% url 'users:register' %}" class="hero-btn secondary">📝 Регистрация</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ person.name }}{% endblock %}
+
+{% block content %}
+<style>
+    .person-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-bottom: 2rem;
+        color: #666;
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+
+    .back-link:hover {
+        color: #3498db;
+    }
+
+    .person-header {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        margin-bottom: 2rem;
+        padding-bottom: 2rem;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .person-avatar-large {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        overflow: hidden;
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        border: 4px solid #ffd700;
+    }
+
+    .person-avatar-large img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .avatar-placeholder-large {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        font-size: 4rem;
+        font-weight: bold;
+        color: white;
+        text-transform: uppercase;
+    }
+
+    .person-title h1 {
+        font-size: 2.5rem;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+
+    .person-level {
+        display: inline-block;
+        padding: 0.3rem 1rem;
+        background: #ffd700;
+        color: #2c3e50;
+        border-radius: 20px;
+        font-weight: bold;
+    }
+
+    .info-block {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin: 1.5rem 0;
+        border-left: 4px solid #ffd700;
+    }
+
+    .info-block h3 {
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .info-block p {
+        color: #666;
+        line-height: 1.6;
+        white-space: pre-line;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+        color: #2c3e50;
+        margin: 2rem 0 1rem 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .parents-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .parent-card {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+    .parent-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        border-color: #ffd700;
+    }
+
+    .parent-card a {
+        color: #2c3e50;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .files-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .files-list li {
+        padding: 0.8rem;
+        background: #f8f9fa;
+        margin-bottom: 0.5rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .files-list li:hover {
+        background: #e9ecef;
+    }
+
+    .files-list a {
+        color: #3498db;
+        text-decoration: none;
+        flex-grow: 1;
+    }
+
+    .files-list a:hover {
+        text-decoration: underline;
+    }
+
+    .file-date {
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 0.8rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background: #3498db;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #2980b9;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+    }
+
+    .btn-success {
+        background: #27ae60;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #219a52;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+    }
+
+    .btn-warning {
+        background: #f39c12;
+        color: white;
+    }
+
+    .btn-warning:hover {
+        background: #e67e22;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(243, 156, 18, 0.3);
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin: 2rem 0;
+        flex-wrap: wrap;
+    }
+
+    .empty-state {
+        color: #666;
+        font-style: italic;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .level-badge {
+        display: inline-block;
+        padding: 0.3rem 1rem;
+        border-radius: 20px;
+        font-weight: bold;
+        margin-left: 1rem;
+    }
+
+    .level-0 { background: #ffd700; color: #2c3e50; }
+    .level-1 { background: #c0c0c0; color: #2c3e50; }
+    .level-2 { background: #cd7f32; color: white; }
+    .level-3 { background: #8b4513; color: white; }
+    .level-4 { background: #4a4a4a; color: white; }
+</style>
+
+<div class="person-container">
+    <a href="{% url 'person_list' %}" class="back-link">← Назад к семейному древу</a>
+
+    <div class="person-header">
+        <div class="person-avatar-large">
+            {% if person.avatar %}
+                <img src="{{ person.avatar.url }}" alt="{{ person.name }}">
+            {% else %}
+                <div class="avatar-placeholder-large">
+                    {{ person.name|make_list|first|upper }}
+                </div>
+            {% endif %}
+        </div>
+        <div class="person-title">
+            <h1>{{ person.name }}</h1>
+            <span class="level-badge level-{{ person.level }}">
+                {% if person.level == 0 %}🌟 Я
+                {% elif person.level == 1 %}👨‍👩 Родители
+                {% elif person.level == 2 %}👴👵 Бабушки/Дедушки
+                {% elif person.level == 3 %}👴👵 Прабабушки/Прадедушки
+                {% else %}🌿 {{ person.level }} поколение{% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- БЛОК ИНФОРМАЦИИ -->
+    {% if person.info %}
+        <div class="info-block">
+            <h3><span>📝</span> Информация</h3>
+            <p>{{ person.info|linebreaksbr }}</p>
+        </div>
+    {% endif %}
+
+    <!-- КНОПКИ ДЕЙСТВИЙ -->
+    <div class="action-buttons">
+        <a href="{% url 'edit_person' person.id %}" class="btn btn-warning">
+            ✏️ Редактировать
+        </a>
+        <a href="{% url 'new_person_file' person.id %}" class="btn btn-success">
+            📎 Добавить файл
+        </a>
+    </div>
+
+    <!-- РОДИТЕЛИ (исправлено) -->
+    <h2 class="section-title">👴👵 Родители</h2>
+    {% if person.parent %}
+        <div class="parents-grid">
+            <div class="parent-card">
+                <a href="{% url 'person_detail' person.parent.id %}">
+                    {{ person.parent.name }}
+                </a>
+            </div>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            🌱 У {{ person.name }} пока нет родителей в древе
+        </div>
+    {% endif %}
+
+    <h2 class="section-title">📎 Файлы</h2>
+    {% if person.files.all %}
+        <ul class="files-list">
+            {% for file in person.files.all %}
+                <li>
+                    <span>📄</span>
+                    <a href="{{ file.file.url }}" target="_blank">
+                        {{ file.description|default:file.file.name }}
+                    </a>
+                    <span class="file-date">{{ file.uploaded_at|date:"d.m.Y" }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="empty-state">
+            📁 У {{ person.name }} пока нет файлов
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
